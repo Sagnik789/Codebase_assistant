@@ -12,7 +12,7 @@ def ingest_chunks(chunks):
     vector_store.add_texts(chunks)
 
 
-def query_rag(query, k=5):
+def query_rag(query, k=5, history =[]):
     # ✅ handle empty index
     if vector_store.index is None or len(vector_store.texts) == 0:
         return "Repository not indexed yet. Call /index_repo first.", []
@@ -23,7 +23,13 @@ def query_rag(query, k=5):
 
     results = vector_store.search(query, k=k)
 
-    answer = generate_answer(query, results)
+    print("\n===== RETRIEVED CHUNKS =====")
+    for i, r in enumerate(results):
+        print(f"\n--- Chunk {i} ---")
+        print(r["text"][:300])
+    print("============================\n")
+
+    answer = generate_answer(query, results, history)
 
     cache[query] = (answer, results)
 

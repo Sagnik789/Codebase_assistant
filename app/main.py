@@ -7,7 +7,12 @@ from app.services.github_loader import clone_repo
 from app.services.file_parser import get_code_files, read_file
 from app.services.chunker import chunk_code
 from app.services.rag_pipeline import ingest_chunks, query_rag, vector_store
+from app.services.database import engine
+from app.services.models import Base
+from app.services.database import SessionLocal
+from app.services.models import QueryHistory
 
+Base.metadata.create_all(bind=engine)
 logging.basicConfig(level=logging.INFO)
 app = FastAPI()
 
@@ -38,6 +43,8 @@ def index_repo(request: RepoRequest):
     print(f"Total files found: {len(files)}")
 
     for file in files:
+        if "test" in file.lower():
+            continue
         content = read_file(file)
 
         if not content or not content.strip():
@@ -71,11 +78,29 @@ def index_repo(request: RepoRequest):
 @app.get("/query")
 def query(q: str, k: int = 5):
     try:
-        answer, sources = query_rag(q, k)
+        db = SessionLocal()
+
+        # 🔥 Get last 3 queries for context
+        history_data = db.query(QueryHistory).order_by(QueryHistory.id.desc()).limit(3).all()
+
+        history = [
+            {"question": h.question, "answer": h.answer}
+            for h in reversed(history_data)
+        ]
+
+        answer, sources = query_rag(q, k, history)
+
+        # Save new query
+        entry = QueryHistory(question=q, answer=answer)
+        db.add(entry)
+        db.commit()
+        db.close()
+
         return {
             "answer": answer,
             "sources": sources[:3]
         }
+
     except Exception as e:
         return {"error": str(e)}
 
@@ -91,6 +116,17 @@ def reset_index():
     vector_store.texts = []
 
     return {"status": "reset complete"}
+
+@app.get("/history")
+def get_history():
+    db = SessionLocal()
+    data = db.query(QueryHistory).all()
+    db.close()
+
+    return [
+        {"q": d.question, "a": d.answer}
+        for d in data
+    ]
 
 
 @app.get("/health")
