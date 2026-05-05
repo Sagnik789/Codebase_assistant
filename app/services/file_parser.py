@@ -1,4 +1,5 @@
 import os
+import logging
 
 SUPPORTED_EXTENSIONS = [".py", ".js", ".ts", ".java", ".cpp"]
 
@@ -17,5 +18,6 @@ def read_file(file_path: str):
     try:
         with open(file_path, "r", encoding="utf-8") as f:
             return f.read()
-    except Exception:
+    except Exception as exc:
+        logging.warning("Failed to read %s: %s", file_path, exc)
         return None

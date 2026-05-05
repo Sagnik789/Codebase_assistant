@@ -1,11 +1,24 @@
-def chunk_code(text, chunk_size=120):
+def chunk_code(text: str, chunk_size: int = 150, overlap: int = 30):
+    """
+    Split code into overlapping line-based chunks.
+    """
     lines = text.split("\n")
     chunks = []
 
-    for i in range(0, len(lines), chunk_size):
-        chunk = "\n".join(lines[i:i + chunk_size]).strip()
+    if chunk_size <= 0:
+        chunk_size = 150
+    if overlap < 0:
+        overlap = 0
+    if overlap >= chunk_size:
+        overlap = max(0, chunk_size // 4)
 
+    step = chunk_size - overlap
+    for start in range(0, len(lines), step):
+        end = start + chunk_size
+        chunk = "\n".join(lines[start:end]).strip()
         if chunk:
             chunks.append(chunk)
+        if end >= len(lines):
+            break
 
     return chunks

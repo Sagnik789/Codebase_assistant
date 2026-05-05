@@ -1,12 +1,14 @@
+import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 
 # 🔥 Update with your actual password
-DATABASE_URL = "postgresql://postgres:password@localhost:5432/codebase_db"
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./codebase.db")
 
 # Create engine
 engine = create_engine(
     DATABASE_URL,
+    connect_args={"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {},
     echo=False  # set True if you want SQL logs
 )
 
