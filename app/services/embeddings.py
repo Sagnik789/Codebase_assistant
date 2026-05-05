@@ -30,6 +30,9 @@ class VectorStore:
         self.save()
 
     def search(self, query, k=5):
+        if self.index is None or not self.texts:
+            return []
+
         query_embedding = self.model.encode([query])
         distances, indices = self.index.search(np.array(query_embedding), k)
 

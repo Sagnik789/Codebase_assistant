@@ -40,7 +40,7 @@ def index_repo(request: RepoRequest):
 
     all_chunks = []
 
-    print(f"Total files found: {len(files)}")
+    logging.info("Total files found: %s", len(files))
 
     for file in files:
         if "test" in file.lower():
@@ -62,7 +62,7 @@ def index_repo(request: RepoRequest):
                 "source": file
             })
 
-    print(f"Total chunks created: {len(all_chunks)}")
+    logging.info("Total chunks created: %s", len(all_chunks))
 
     ingest_chunks(all_chunks)
 
@@ -77,9 +77,8 @@ def index_repo(request: RepoRequest):
 
 @app.get("/query")
 def query(q: str, k: int = 5):
+    db = SessionLocal()
     try:
-        db = SessionLocal()
-
         # 🔥 Get last 3 queries for context
         history_data = db.query(QueryHistory).order_by(QueryHistory.id.desc()).limit(3).all()
 
@@ -94,7 +93,6 @@ def query(q: str, k: int = 5):
         entry = QueryHistory(question=q, answer=answer)
         db.add(entry)
         db.commit()
-        db.close()
 
         return {
             "answer": answer,
@@ -102,7 +100,10 @@ def query(q: str, k: int = 5):
         }
 
     except Exception as e:
+        db.rollback()
         return {"error": str(e)}
+    finally:
+        db.close()
 
 
 @app.post("/reset_index")
